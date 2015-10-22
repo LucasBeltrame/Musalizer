@@ -2,16 +2,24 @@
 <html lang="fr">
 	<head>
 		<meta charset="utf-8" />
-		<title>Visualiseur de musiques</title>
+		<title>Muzaliser</title>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
  </head>
 	<body>
-		<br>
-			what?
-		<br>
-		<audio controls autoplay loop>
-			<source src="D:/Utilisateurs/Lucas/Music/OST/Portal2-OST-Volume-3/Portal2-13-Want_You_Gone.mp3" type="audio/mpeg">
-		Your browser does not support the audio element.
-		</audio> 
-		
+		<div>
+			<input id="audio_file" type="file" accept="audio/*" /><br>
+		</div>
+		<div id="player">
+			<audio controls id="audio_player" />
+		</div>
+		<script type="text/javascript">
+			audio_file.onchange = function()
+			{
+				var files = this.files;
+				var file = URL.createObjectURL(files[0]); 
+				audio_player.src = file; 
+				audio_player.play();
+			};
+		</script>
 	</body>
 </html>
