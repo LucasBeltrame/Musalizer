@@ -2,24 +2,90 @@
 <html lang="fr">
 	<head>
 		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<title>Muzaliser</title>
+		<link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css">
+		<!--[if lte IE 8]>
+    		<link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/grids-responsive-old-ie-min.css">
+		![endif]-->
+		<!--[if gt IE 8]><!-->
+	    	<link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/grids-responsive-min.css">
+		<!--<![endif]-->
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
  </head>
 	<body>
-		<div>
-			<input id="audio_file" type="file" accept="audio/*" /><br>
+		<div class="pure-g">
+			<div class="pure-u-1-3"></div>
+			<div class="pure-u-1-3">
+				<input id="audio_file" type="file" accept="audio/*" />
+			</div>
+			<div class="pure-u-1-3"></div>
 		</div>
-		<div id="player">
-			<audio controls id="audio_player" />
+		<div class="pure-g">
+			<div class="pure-u-1-5"></div>
+
+			<div class="pure-u-1-2" id="canvasLocation">
+				<canvas id="myCanvas" width="680" height="500">
+					Your browser doesn't support HTML5 :'(
+				</canvas>
+			</div>
+
+			<div class="pure-u-1-5"></div>
 		</div>
+
 		<script type="text/javascript">
+			var canvas = document.getElementById('myCanvas');
+			var index = 0;
+			var largeurCarre = 4;
+
 			audio_file.onchange = function()
 			{
 				var files = this.files;
-				var file = URL.createObjectURL(files[0]); 
-				audio_player.src = file; 
-				audio_player.play();
+				var file = URL.createObjectURL(files[0]);
+				var audio = new Audio();
+				audio.src = file;
+				audio.controls = true;
+				audio.autoplay = true;
+				document.body.appendChild(audio);
+
+				var context = new AudioContext();
+				var analyser = context.createAnalyser();
+				var frequencyData = new Uint8Array(analyser.frequencyBinCount);
+
+				var source = context.createMediaElementSource(audio);
+				source.connect(analyser);
+				analyser.connect(context.destination);
+
+				function renderFrame() {
+					requestAnimationFrame(renderFrame);
+					// update data in frequencyData
+					analyser.getByteFrequencyData(frequencyData);
+					// render frame based on values in frequencyData
+					var context = canvas.getContext('2d');
+
+					context.scale(1,-1);
+					context.translate(0, canvas.height);
+
+					var y = canvas.height/2 - frequencyData[0];
+					var x = 0;
+
+					context.clearRect(0, 0, canvas.width, canvas.height);
+					context.beginPath();
+					for(index = 0; index < 680;index++)
+					{
+						if(index+1 < 680)
+						{
+							context.moveTo(index, y);
+							y = canvas.height/2 - frequencyData[index];
+							context.lineTo(index+1, y);
+						}
+					}
+					context.stroke();
+				}
+				renderFrame();
 			};
+
 		</script>
 	</body>
 </html>
