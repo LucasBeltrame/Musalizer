@@ -52,7 +52,9 @@ function handleMouseUp(event){
 // in the next function 'currentRy' is usefull for the exercice 8-9
 var currentRy = 0; //keeps the current rotation on y, used to keep the billboards orientation
 
-function rotateModelViewMatrixUsingQuaternion() {
+function rotateModelViewMatrixUsingQuaternion(stop) {
+	
+	stop = typeof stop !== 'undefined' ? stop : false;
 	//use quaternion rotations for the rotation of the object with the mouse
 	/*angle = degToRad(rotY);
 	currentRy += angle;
@@ -81,6 +83,8 @@ function rotateModelViewMatrixUsingQuaternion() {
 	mat4.fromQuat(rotationMatrix, myQuaternion);
 	mat4.multiply(mvMatrix, rotationMatrix, mvMatrix);
 	//reset rotation values, otherwise rotation accumulates
-	//rotX = 0.;
-	//rotY = 0.;
+	if(stop){
+		rotX = 0.;
+		rotY = 0.;
+	}
 }
