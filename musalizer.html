@@ -4,18 +4,15 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<title>Muzaliser</title>
-		<link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css">
-		<!--[if lte IE 8]>
-    		<link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/grids-responsive-old-ie-min.css">
-		![endif]-->
-		<!--[if gt IE 8]><!-->
-	    	<link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/grids-responsive-min.css">
-		<!--<![endif]-->
+		<!-- Bootstrap -->
+		<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet" integrity="sha256-MfvZlkHCEqatNoGiOXveE8FIwMzZg4W85qfrfIFBfYc= sha512-dTfge/zgoMYpP7QbHy4gWMEGsbsdZeCXz7irItjcC3sPUFtf0kuFbDz/ixG7ArTxmDjLXDmezHubeNikyKGVyQ==" crossorigin="anonymous">
+	    <!-- END Bootstrap -->
         <link rel="stylesheet" href="css/stylesheet.css">
 		
 		<script src="js/commonFunctions.js"></script>
 	    <script src="js/gl-matrix-min.js"></script>
 	    <script src="js/webglTools.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 	    <script id="shader-vs" type="x-shader/x-vertex">
 	        attribute vec3 aVertexPosition;
 			attribute vec4 aColor;
@@ -61,12 +58,11 @@
 			const MAX_VALUE = 255;
 			const MIN_VALUE = 0;
 			const NB_FREQUENCIES = 1024;
-			const NB_ROWS = 8;
+			const NB_ROWS = 20;
 			
 			window.onkeydown = checkKey;
 			//On regarde pour la rotation
 			function checkKey(ev){
-				console.log(ev.keyCode);
 				//Pour garder la compatibilité IE...
 				var key = ev.which || ev.keyCode;
 				switch(key)
@@ -94,11 +90,13 @@
 			
 			function cameraFct(perspective)
 			{
+				var stretch_width = 0.45;
 				translationMat = mat4.create();
 				mat4.identity(translationMat);
 				if( perspective )
 				{
-					mat4.perspective(pMatrix, degToRad(40.0), c_width / c_height, 0.1, 1000.0);
+				//La multiplication par 0.3 permet d'étirer l'affichage sur la largeur
+					mat4.perspective(pMatrix, degToRad(40.0), c_width*stretch_width / c_height, 0.1, 1000.0);
 					var tx = 0.0;
 					var ty = 0.0;
 					var tz = -4.0;
@@ -123,9 +121,7 @@
 	            prg.pMatrixUniform = glContext.getUniformLocation(prg, 'uPMatrix');
 	            prg.mvMatrixUniform = glContext.getUniformLocation(prg, 'uMVMatrix');
 				initializeArrayTwoDim();
-				console.log(rowsVertices);
 				shiftRows();
-				console.log(rowsVertices);
 	        }
 			
 			//Initialisation des tableaux à zéro
@@ -141,7 +137,7 @@
 				{
 					rowsVertices.push([]);
 					rowsColors.push([]);
-					for(j = -1.0; j<= 1.0;j+=pasX)
+					for(j = -1.0; j< 1.0;j+=pasX)
 					{
 						rowsVertices[index].push(j,-1.0,i);
 						rowsColors[index].push(0.0,0.0,1.0,1.0);
@@ -151,13 +147,18 @@
 				
 				//Nos indices ne vont jamais bouger donc on peut les initialiser ici
 				var nbFreq = NB_FREQUENCIES-2;
-				for(i = 0; i<NB_ROWS-1;i++)
+				for(i = 0; i<NB_ROWS-2;i++)
 				{
 					for(j =0;j<nbFreq;j++)
 					{
-						indices.push(i*nbFreq + j , i*nbFreq + j + 1 , i*nbFreq + j+1 + nbFreq , i*nbFreq + j + nbFreq , i*nbFreq + j);
+						//indices.push(i*nbFreq + j , i*nbFreq + j + 1 , i*nbFreq + j+1 + nbFreq , i*nbFreq + j + nbFreq , i*nbFreq + j);
+						indices.push(i*NB_FREQUENCIES + j, (i+1)*NB_FREQUENCIES + j, (i+1)*NB_FREQUENCIES + j + 1);
+						indices.push(i*NB_FREQUENCIES + j, i*NB_FREQUENCIES + j +1, (i+1)*NB_FREQUENCIES + j + 1);
 					}
 				}
+				//Debug
+				//indices.push(0,(NB_ROWS-1)*NB_FREQUENCIES,(NB_ROWS-1)*NB_FREQUENCIES + NB_FREQUENCIES-1);
+				//indices.push(0,NB_FREQUENCIES-1,(NB_ROWS-1)*NB_FREQUENCIES + NB_FREQUENCIES-1);
 				
 			}
 			
@@ -188,12 +189,8 @@
 	            var index = -1.0;
 	            var indice = 0;
 	            var y = 0;
-				var countVertex = 0;
-	            //indices =[];
 	            colors = [];
 	            vertices = [];
-				verticesTemp = [];
-				colorsTemp = [];
 				
 	            if(frequencyData.length > 0)
 	            {
@@ -204,32 +201,24 @@
 					rowsColors[0] = [];
 	            	var pas = 2.0 / frequencyData.length;
 					
-	            	for(index = -1.0; index <= 1.0;index+=pas)
+	            	for(index = -1.0; index < 1.0;index+=pas)
 					{
 						// On prend la valeur correspondante à l'indice puis on la divise par la valeur max (255 par défaut) afin d'avoir une valeur dans le domaine [0.0 , 1.0] dans R
 						//Seulement, le domaine "dessinable" de WebGL va de -1.0 à 1.0
 						//Donc pour prendre tout l'espace, on commence par multiplier par 2 pour arriver à un domaine [0.0, 2.0] dans R
 						//Enfin, on retire 1 afin d'arriver à un domaine [-1.0 , 1.0] dans R
 						
-						y = (frequencyData[indice]/MAX_VALUE) * 2.0 -1.0;
+						//y = (frequencyData[indice]/MAX_VALUE) * 2.0 -1.0;
+						y = (frequencyData[indice]/MAX_VALUE)-1.0;
 						
 						//On repli des tableaux temporaires afin d'en ajouter 3 à la suite
 						//Cela permet d'être sûr qu'on ajoute bien 3 éléments à la fois pour créer des triangles
-						verticesTemp.push(index,y,-1.0);
-						colorsTemp.push(y,0.0,1.0-y,1.0);
-						countVertex++;
-						//Si l'on a 3 sommets en attente, on peut les ajouter afin de former un triangle
-						if(countVertex == 3)
-						{
-							rowsVertices[0] = rowsVertices[0].concat(verticesTemp);
-							rowsColors[0] = rowsColors[0].concat(colorsTemp);			
+						rowsVertices[0].push(index,y,-1.0);
+						rowsColors[0].push(y+1.0,0.0,1.0 + y,1.0);		
 
-							//On remet nos variables servant de file d'attente à zéro
-							verticesTemp = [];
-							colorsTemp = [];
-							countVertex = 0;
-							
-						}
+						//On remet nos variables servant de file d'attente à zéro
+						verticesTemp = [];
+						colorsTemp = [];
 						indice++;
 					}
 	            }
@@ -249,7 +238,7 @@
 			}
 
 	        function drawScene() {
-				glContext.clearColor(0.0, 0.0, 0.0, 1.0);
+				glContext.clearColor(0.1, 0.1, 0.1, 1.0);
 				glContext.enable(glContext.DEPTH_TEST);
 				glContext.clear(glContext.COLOR_BUFFER_BIT | glContext.DEPTH_BUFFER_BIT);
 				glContext.viewport(0, 0, c_width, c_height);
@@ -261,7 +250,7 @@
 				glContext.bindBuffer(glContext.ARRAY_BUFFER, colorBuffer);
 				glContext.vertexAttribPointer(prg.colorAttribute, 4, glContext.FLOAT, false, 0, 0);
 				glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
-				glContext.drawElements(glContext.TRIANGLE_STRIP,indices.length,glContext.UNSIGNED_SHORT,0);
+				glContext.drawElements(glContext.TRIANGLES,indices.length,glContext.UNSIGNED_SHORT,0);
 				//glContext.drawElements(glContext.POINTS, indices.length, glContext.UNSIGNED_SHORT,0);
 				
 				}
@@ -274,19 +263,46 @@
 	        }
 	    </script>
 	</head>
-	<body onload="onBodyLoad()">
-		<div class="audio-choice">
-			<input id="audio_file" type="file" accept="audio/*" />
-		</div>
-		<div id="player-div">
-			
-		</div>
+	<body onload="onBodyLoad()">		
 		<div class="canvas-and-player full-width" id="canvas-div">
 			<canvas id="webgl-canvas" height="500">
 				Your browser doesn't support HTML5 :'(
 			</canvas>
 		</div>
-
+		
+		<!-- Large modal -->
+		<div class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" id="modal-musique">
+			<div class="modal-dialog modal-lg">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h3 class="modal-title">Choisissez votre musique</h3>
+					</div>
+					<div class="modal-body">
+						<input id="audio_file" type="file" accept="audio/*" />
+					</div>
+				</div>
+			</div>
+		</div>	
+		
+		<div id="player-div"></div>
+		
+		
+		<!-- Ouvre la fenêtre modal dès le cahrgement -->
+		<script type="text/javascript">
+			$(window).load(function(){
+				ouvrirModal();
+			});
+			
+			function ouvrirModal()
+			{
+				$('#modal-musique').modal({
+						backdrop: 'static',
+						keyboard: false
+				})
+				$('#modal-musique').modal('show');
+			}
+		</script>
+		
 		<script>
 			var canvas = document.getElementById('webgl-canvas');
 			var index = 0;
@@ -301,13 +317,22 @@
 			function updateCanvasSize()
 			{
 				var canvas = document.getElementById("webgl-canvas");
-				var canvasDiv = document.getElementById("canvas-div");
-				canvas.width = canvasDiv.clientWidth;
-				canvas.height = canvasDiv.clientHeight;
+				canvas.width  = window.innerWidth;
+				canvas.height = window.innerHeight;
+				c_width = canvas.width;
+				c_height = canvas.height;
+				
 			}
 			
 			audio_file.onchange = function()
 			{
+				//On ferme la fenêtre modal
+				$('#modal-musique').modal('hide');
+				//Permet de masquer les scrolls bars qui apparaissent sans que je sache pourquoi :/
+				//Source des deux lignes suivantes : http://stackoverflow.com/questions/26745292/canvas-toggle-filling-whole-page-removing-scrollbar
+				document.body.scrollTop = 0; // <-- pull the page back up to the top
+				document.body.style.overflow = 'hidden'; // <-- relevant addition
+				
 				//On retire les balises audio déjà présente
 				var audioDiv = document.getElementById("player-div");
 				while(audioDiv.firstChild)
@@ -319,6 +344,7 @@
 				var file = URL.createObjectURL(files[0]);
 				var audio = new Audio();
 				audio.src = file;
+				audio.id = 'player';
 				audio.controls = false;
 				audio.autoplay = true;
 				//document.body.appendChild(audio);
@@ -331,6 +357,10 @@
 				var source = context.createMediaElementSource(audio);
 				source.connect(analyser);
 				analyser.connect(context.destination);
+				
+				$(audio).bind("ended",function(){
+					ouvrirModal();
+				});
 
 				function renderFrame() {
 					requestAnimationFrame(renderFrame);
@@ -348,5 +378,6 @@
 
 		</script>
 		<script src="js/mouseMotionHandling.js"></script>
+				<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js" integrity="sha256-Sk3nkD6mLTMOF0EOpNtsIry+s1CsaqQC1rVLTAy+0yc= sha512-K1qjQ+NcF2TYO/eI3M6v8EiNYZfA95pQumfvcVrTHtwQVDG+aHRqLi/ETn2uB+1JqwYqVG3LIvdm9lj6imS/pQ==" crossorigin="anonymous"></script>
 	</body>
 </html>
