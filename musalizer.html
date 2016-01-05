@@ -3,12 +3,12 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<title>Muzaliser</title>
+		<title id="titre">Muzaliser</title>
 		<!-- Bootstrap -->
 		<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet" integrity="sha256-MfvZlkHCEqatNoGiOXveE8FIwMzZg4W85qfrfIFBfYc= sha512-dTfge/zgoMYpP7QbHy4gWMEGsbsdZeCXz7irItjcC3sPUFtf0kuFbDz/ixG7ArTxmDjLXDmezHubeNikyKGVyQ==" crossorigin="anonymous">
 	    <!-- END Bootstrap -->
         <link rel="stylesheet" href="css/stylesheet.css">
-		
+
 		<script src="js/commonFunctions.js"></script>
 	    <script src="js/gl-matrix-min.js"></script>
 	    <script src="js/webglTools.js"></script>
@@ -35,12 +35,12 @@
 			}
 	    </script>
 	    <script>
-	        var vertexBuffer = null;
-	        var indexBuffer = null;
-	        var colorBuffer = null;
-	        var indices = [];
-	        var vertices = [];
-	        var colors = [];
+      var vertexBuffer = null;
+      var indexBuffer = null;
+      var colorBuffer = null;
+      var indices = [];
+      var vertices = [];
+      var colors = [];
 			//Tableau servant de liste d'attente
 			var tabLignes = [];
 			var verticesTemp = [];
@@ -51,7 +51,15 @@
 			var rotX = 0;
 			//On choisi si on veut de la perspective ou non
 			var perspective = true;
-			
+			//Compteur FPS
+			var elapsedTime = 0;
+			var frameCount = 0;
+			var lastTime = 0;
+			//Couleur de base :
+			var red = 0.96;
+			var green = 0.496;
+			var blue = 0.184;
+
 	        var mvMatrix = mat4.create();
 	        var pMatrix = mat4.create();
 	        var frequencyData = [];
@@ -59,11 +67,11 @@
 			const MIN_VALUE = 0;
 			const NB_FREQUENCIES = 1024;
 			const NB_ROWS = 20;
-			
+
 			window.onkeydown = checkKey;
 			//On regarde pour la rotation
 			function checkKey(ev){
-				//Pour garder la compatibilité IE...
+				//Pour garder la compatibilitï¿½ IE...
 				var key = ev.which || ev.keyCode;
 				switch(key)
 				{
@@ -87,7 +95,7 @@
 					break;
 				}
 			}
-			
+
 			function cameraFct(perspective)
 			{
 				var stretch_width = 0.45;
@@ -95,8 +103,8 @@
 				mat4.identity(translationMat);
 				if( perspective )
 				{
-				//La multiplication par 0.3 permet d'étirer l'affichage sur la largeur
-					mat4.perspective(pMatrix, degToRad(40.0), c_width*stretch_width / c_height, 0.1, 1000.0);
+				//La multiplication par stretch_width permet d'Ã©tirer l'affichage sur la largeur
+					mat4.perspective(pMatrix, degToRad(40.0), c_width*stretch_width / c_height, 0.1, 10000.0);
 					var tx = 0.0;
 					var ty = 0.0;
 					var tz = -4.0;
@@ -111,8 +119,8 @@
 				glContext.uniformMatrix4fv(prg.pMatrixUniform, false, pMatrix);
 				glContext.uniformMatrix4fv(prg.mvMatrixUniform, false, mat4.multiply(mat4.create(), translationMat, mvMatrix));
 			}
-			
-			
+
+
 	        function initShaderParameters(prg) {
 	            prg.vertexPositionAttribute = glContext.getAttribLocation(prg, "aVertexPosition");
 	            glContext.enableVertexAttribArray(prg.vertexPositionAttribute);
@@ -121,10 +129,9 @@
 	            prg.pMatrixUniform = glContext.getUniformLocation(prg, 'uPMatrix');
 	            prg.mvMatrixUniform = glContext.getUniformLocation(prg, 'uMVMatrix');
 				initializeArrayTwoDim();
-				shiftRows();
 	        }
-			
-			//Initialisation des tableaux à zéro
+
+			//Initialisation des tableaux ï¿½ zï¿½ro
 			function initializeArrayTwoDim()
 			{
 				var i = 0;
@@ -132,7 +139,7 @@
 				var j = 0;
 				var pasX = 2.0 / NB_FREQUENCIES;
 				var pasZ = 2.0 / NB_ROWS;
-				
+
 				for(i = -1.0; i< 1.0;i+=pasZ)
 				{
 					rowsVertices.push([]);
@@ -140,11 +147,11 @@
 					for(j = -1.0; j< 1.0;j+=pasX)
 					{
 						rowsVertices[index].push(j,-1.0,i);
-						rowsColors[index].push(0.0,0.0,1.0,1.0);
+						rowsColors[index].push(0.0,0.0,0.0,1.0);
 					}
 					index++;
 				}
-				
+
 				//Nos indices ne vont jamais bouger donc on peut les initialiser ici
 				var nbFreq = NB_FREQUENCIES-2;
 				for(i = 0; i<NB_ROWS-2;i++)
@@ -156,67 +163,84 @@
 						indices.push(i*NB_FREQUENCIES + j, i*NB_FREQUENCIES + j +1, (i+1)*NB_FREQUENCIES + j + 1);
 					}
 				}
-				//Debug
-				//indices.push(0,(NB_ROWS-1)*NB_FREQUENCIES,(NB_ROWS-1)*NB_FREQUENCIES + NB_FREQUENCIES-1);
-				//indices.push(0,NB_FREQUENCIES-1,(NB_ROWS-1)*NB_FREQUENCIES + NB_FREQUENCIES-1);
-				
 			}
-			
-			//On déplace toutes nos lignes vers "le bas". On ne change pas la première ligne car elle va être de toute manière changée par la suite
+
+			//On dï¿½place toutes nos lignes vers "le bas". On ne change pas la premiï¿½re ligne car elle va ï¿½tre de toute maniï¿½re changï¿½e par la suite
+			//TODO : "blanchir" les lignes les plus au fond de l'image
 			function shiftRows()
 			{
 				var pasZ = 2.0 / NB_ROWS;
-				var z = 1.0;
+				var z = -1.0;
 				var i = NB_ROWS-1;
 				var j = 0;
-				for(i = NB_ROWS-1; i > 0;i--)
+				var posColor = 1;
+				var pasColor = 1.0 / NB_ROWS;
+            	var pasRed = (1.0 - red)/NB_ROWS;
+            	var pasGreen = (1.0 - green)/NB_ROWS;
+            	var pasBlue = (1.0 - blue)/NB_ROWS;
+
+
+
+				for(i = 0; i < NB_ROWS-1;i++)
 				{
 					rowsVertices[i] = [];
-					rowsVertices[i] = rowsVertices[i].concat(rowsVertices[i-1]);
+					rowsVertices[i] = rowsVertices[i].concat(rowsVertices[i+1]);
+					rowsColors[i] = [];
+					rowsColors[i] = rowsColors[i].concat(rowsColors[i+1]);
 					for(j =2; j<rowsVertices[i].length;j+=3)
 					{
 						rowsVertices[i][j] =  z;
+
 					}
-					z -= pasZ;
-					rowsColors[i] = [];
-					rowsColors[i] = rowsColors[i].concat(rowsColors[i-1]);
+					z += pasZ;
+					for (j=0; j<rowsColors[i].length;j+=4)
+					{
+						//RGB
+						//rowsColors[i][j] += pasRed;
+						//rowsColors[i][j+1] += pasGreen;
+						//rowsColors[i][j+2] += pasBlue;
+						//rowsColors[i][j+3] -= 0.02;
+					}
 				}
 			}
-			
+
 	        function initBuffers() {
-	        	
-	        	
+
+
 	            var index = -1.0;
 	            var indice = 0;
 	            var y = 0;
 	            colors = [];
 	            vertices = [];
-				
+
 	            if(frequencyData.length > 0)
 	            {
-					//On décale nos lignes
+					//On dï¿½cale nos lignes
 					shiftRows();
-					
-					rowsVertices[0] = [];
-					rowsColors[0] = [];
+
+					rowsVertices[NB_ROWS-1] = [];
+					rowsColors[NB_ROWS-1] = [];
 	            	var pas = 2.0 / frequencyData.length;
-					
+
 	            	for(index = -1.0; index < 1.0;index+=pas)
 					{
-						// On prend la valeur correspondante à l'indice puis on la divise par la valeur max (255 par défaut) afin d'avoir une valeur dans le domaine [0.0 , 1.0] dans R
-						//Seulement, le domaine "dessinable" de WebGL va de -1.0 à 1.0
-						//Donc pour prendre tout l'espace, on commence par multiplier par 2 pour arriver à un domaine [0.0, 2.0] dans R
-						//Enfin, on retire 1 afin d'arriver à un domaine [-1.0 , 1.0] dans R
-						
+						// On prend la valeur correspondante ï¿½ l'indice puis on la divise par la valeur max (255 par dï¿½faut) afin d'avoir une valeur dans le domaine [0.0 , 1.0] dans R
+						//Seulement, le domaine "dessinable" de WebGL va de -1.0 ï¿½ 1.0
+						//Donc pour prendre tout l'espace, on commence par multiplier par 2 pour arriver ï¿½ un domaine [0.0, 2.0] dans R
+						//Enfin, on retire 1 afin d'arriver ï¿½ un domaine [-1.0 , 1.0] dans R
+
 						//y = (frequencyData[indice]/MAX_VALUE) * 2.0 -1.0;
 						y = (frequencyData[indice]/MAX_VALUE)-1.0;
-						
-						//On repli des tableaux temporaires afin d'en ajouter 3 à la suite
-						//Cela permet d'être sûr qu'on ajoute bien 3 éléments à la fois pour créer des triangles
-						rowsVertices[0].push(index,y,-1.0);
-						rowsColors[0].push(y+1.0,0.0,1.0 + y,1.0);		
 
-						//On remet nos variables servant de file d'attente à zéro
+						//On repli des tableaux temporaires afin d'en ajouter 3 ï¿½ la suite
+						//Cela permet d'ï¿½tre sï¿½r qu'on ajoute bien 3 ï¿½lï¿½ments ï¿½ la fois pour crï¿½er des triangles
+						rowsVertices[NB_ROWS-1].push(index,y,1.0);
+						//rowsColors[0].push(1.0 + y,0.0,0.0,1.0);
+						//rowsColors[NB_ROWS-1].push(0.96+y,0.496+y,0.184+y,1.0);
+						rowsColors[NB_ROWS-1].push(red+y,green+y,blue+y,1.0);
+						//246, 127, 47
+
+						//On remet nos variables servant de file d'attente ï¿½ zï¿½ro
 						verticesTemp = [];
 						colorsTemp = [];
 						indice++;
@@ -233,16 +257,23 @@
 	            indexBuffer = getIndexBufferWithIndices(indices);
 	        }
 
-	        function degToRad(degrees){
-				return( degrees * Math.PI / 180.0 );
-			}
+	      function degToRad(degrees)
+				{
+					return( degrees * Math.PI / 180.0 );
+				}
 
-	        function drawScene() {
-				glContext.clearColor(0.1, 0.1, 0.1, 1.0);
+	      function drawScene() {
+				//Evite une erreur avec Chrome car il semble se lancer dans le dessin de la scÃ¨ne avant que le contexte soit crÃ©e...
+				if(glContext == null)
+				{
+					return;
+				}
+
+				glContext.clearColor(0.0, 0.0, 0.0, 1.0);
 				glContext.enable(glContext.DEPTH_TEST);
 				glContext.clear(glContext.COLOR_BUFFER_BIT | glContext.DEPTH_BUFFER_BIT);
 				glContext.viewport(0, 0, c_width, c_height);
-				
+
 				cameraFct(perspective);
 
 				glContext.bindBuffer(glContext.ARRAY_BUFFER, vertexBuffer);
@@ -251,9 +282,25 @@
 				glContext.vertexAttribPointer(prg.colorAttribute, 4, glContext.FLOAT, false, 0, 0);
 				glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
 				glContext.drawElements(glContext.TRIANGLES,indices.length,glContext.UNSIGNED_SHORT,0);
-				//glContext.drawElements(glContext.POINTS, indices.length, glContext.UNSIGNED_SHORT,0);
-				
+
+				//FPS Count
+				var now = new Date().getTime();
+				frameCount++;
+				elapsedTime += (now - lastTime);
+				lastTime = now;
+				if(elapsedTime >= 1000)
+				{
+					fps = frameCount;
+					frameCount = 0;
+					elapsedTime -=1000;
+
+					document.getElementById('titre').innerHTML = fps + " FPS";
 				}
+
+			}
+
+			lastTime = new Date().getTime();
+			setInterval(drawScene,33);
 
 	        function initWebGL() {
 	            glContext = getGLContext('webgl-canvas');
@@ -263,13 +310,13 @@
 	        }
 	    </script>
 	</head>
-	<body onload="onBodyLoad()">		
+	<body onload="onBodyLoad()">
 		<div class="canvas-and-player full-width" id="canvas-div">
 			<canvas id="webgl-canvas" height="500">
 				Your browser doesn't support HTML5 :'(
 			</canvas>
 		</div>
-		
+
 		<!-- Large modal -->
 		<div class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" id="modal-musique">
 			<div class="modal-dialog modal-lg">
@@ -282,17 +329,17 @@
 					</div>
 				</div>
 			</div>
-		</div>	
-		
+		</div>
+
 		<div id="player-div"></div>
-		
-		
-		<!-- Ouvre la fenêtre modal dès le cahrgement -->
+
+
+		<!-- Ouvre la fenï¿½tre modal dï¿½s le cahrgement -->
 		<script type="text/javascript">
 			$(window).load(function(){
 				ouvrirModal();
 			});
-			
+
 			function ouvrirModal()
 			{
 				$('#modal-musique').modal({
@@ -302,18 +349,18 @@
 				$('#modal-musique').modal('show');
 			}
 		</script>
-		
+
 		<script>
 			var canvas = document.getElementById('webgl-canvas');
 			var index = 0;
 			var largeurCarre = 4;
-			
+
 			function onBodyLoad()
 			{
 				updateCanvasSize();
 				initWebGL();
 			}
-			
+
 			function updateCanvasSize()
 			{
 				var canvas = document.getElementById("webgl-canvas");
@@ -321,45 +368,50 @@
 				canvas.height = window.innerHeight;
 				c_width = canvas.width;
 				c_height = canvas.height;
-				
+
 			}
-			
+
 			audio_file.onchange = function()
 			{
-				//On ferme la fenêtre modal
+				//On ferme la fenï¿½tre modal
 				$('#modal-musique').modal('hide');
 				//Permet de masquer les scrolls bars qui apparaissent sans que je sache pourquoi :/
 				//Source des deux lignes suivantes : http://stackoverflow.com/questions/26745292/canvas-toggle-filling-whole-page-removing-scrollbar
 				document.body.scrollTop = 0; // <-- pull the page back up to the top
 				document.body.style.overflow = 'hidden'; // <-- relevant addition
-				
-				//On retire les balises audio déjà présente
+
+				//On retire les balises audio dï¿½jï¿½ prï¿½sente
 				var audioDiv = document.getElementById("player-div");
 				while(audioDiv.firstChild)
 				{
 					audioDiv.removeChild(audioDiv.firstChild);
 				}
-				
+
 				var files = this.files;
-				var file = URL.createObjectURL(files[0]);
+				//On regarde si Window.URL existe, si ce n'est pas le cas, on utilie webkit
+				//ï¿½a permet de savoir si on utilise Firefox ou Chrome/Chromium
+				var file = (window.URL ? URL : webkitURL).createObjectURL(files[0]);
 				var audio = new Audio();
 				audio.src = file;
 				audio.id = 'player';
 				audio.controls = false;
 				audio.autoplay = true;
-				//document.body.appendChild(audio);
 				audioDiv.appendChild(audio);
 				var context = new AudioContext();
 				var analyser = context.createAnalyser();
+				analyser.fftSize = 2048;
 				//The range of a frequence is [0, 255] in N domain
 				frequencyData = new Uint8Array(analyser.frequencyBinCount);
 
 				var source = context.createMediaElementSource(audio);
 				source.connect(analyser);
 				analyser.connect(context.destination);
-				
+
 				$(audio).bind("ended",function(){
-					ouvrirModal();
+					//delete analyser;
+					//delete audio;
+					//ouvrirModal();
+					location.reload();
 				});
 
 				function renderFrame() {
@@ -370,8 +422,8 @@
 				}
 				renderFrame();
 			};
-			
-			window.onresize = function(event) 
+
+			window.onresize = function(event)
 			{
 				updateCanvasSize();
 			};

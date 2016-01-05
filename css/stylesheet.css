@@ -9,8 +9,10 @@ body {
 	font-size: 1em;
 }
 
-.full-width{
-	float:		left;
-	width:		100%;
-	margin:		0;
+.modal-title{
+	text-align: center;
+}
+
+#audio_file{
+	margin: auto;
 }
