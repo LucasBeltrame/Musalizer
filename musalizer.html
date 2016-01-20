@@ -61,10 +61,6 @@
             var rotX = 0;
             //On choisi si on veut de la perspective ou non
             var perspective = true;
-            //Compteur FPS
-            var elapsedTime = 0;
-            var frameCount = 0;
-            var lastTime = 0;
 
             //Couleur de base :
             var red = 0.96;
@@ -85,11 +81,11 @@
 
             const MAX_VALUE = 255;
             const MIN_VALUE = 0;
-            
+
             //const NB_FREQUENCIES = 1024;
             const NB_FREQUENCIES = 660;
-            const NB_ROWS = 20;
-            const NB_ITERATION_FOR_COLOR_CHANGING = 100;
+            const NB_ROWS = 30;
+            const NB_ITERATION_FOR_COLOR_CHANGING = 300;
             const INVERSE_NB_ITERATION_FOR_COLOR_CHANGING = 1/NB_ITERATION_FOR_COLOR_CHANGING;
 
             window.onkeydown = checkKey;
@@ -312,20 +308,6 @@
                 glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
                 glContext.drawElements(glContext.TRIANGLES,indices.length,glContext.UNSIGNED_SHORT,0);
 
-                //FPS Count
-                var now = new Date().getTime();
-                frameCount++;
-                elapsedTime += (now - lastTime);
-                lastTime = now;
-                if(elapsedTime >= 1000)
-                {
-                    fps = frameCount;
-                    frameCount = 0;
-                    elapsedTime -=1000;
-
-                    document.getElementById('titre').innerHTML = fps + " FPS";
-                }
-
             }
 
             lastTime = new Date().getTime();
@@ -469,8 +451,6 @@
                 $(audio).bind("ended",function(){
                     location.reload();
                 });
-
-                var fps = 60;
 
                 function renderFrame() {
                     requestAnimationFrame(renderFrame);
