@@ -188,7 +188,7 @@
                 }
             }
 
-            //On déplace toutes nos lignes vers "le bas". On ne change pas la premi�re ligne car elle va �tre de toute mani�re chang�e par la suite
+            //On déplace toutes nos lignes vers "le bas". On ne change pas la première ligne car elle va être de toute manière changée par la suite
             function shiftRows()
             {
                 var pasZ = 2.0 / NB_ROWS;
@@ -237,7 +237,6 @@
                         //Cela permet d'être sûr qu'on ajoute bien 3 éléments à la fois pour créer des triangles
                         rowsVertices[NB_ROWS-1].push(index,y,1.0);
                         rowsColors[NB_ROWS-1].push(red,green,blue,1.0);
-                        //246, 127, 47
 
                         //On remet nos variables servant de file d'attente à zéro
                         verticesTemp = [];
@@ -310,9 +309,6 @@
 
             }
 
-            lastTime = new Date().getTime();
-            setInterval(drawScene,33);
-
             function initWebGL()
             {
                 glContext = getGLContext('webgl-canvas');
@@ -329,7 +325,7 @@
             </canvas>
         </div>
 
-        <!-- Large modal -->
+        <!-- Audio file modal -->
         <div class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" id="modal-musique">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -364,7 +360,7 @@
         </div>
 
 
-        <!-- Ouvre la fen�tre modal d�s le cahrgement -->
+        <!-- Ouvre la fenêtre modal des le chargement -->
         <script type="text/javascript">
             $(window).load(function(){
                 ouvrirModal();
@@ -441,7 +437,7 @@
                 var context = new AudioContext();
                 var analyser = context.createAnalyser();
                 analyser.fftSize = 2048;
-                //The range of a frequence is [0, 255] in N domain
+                //La "range" est de [0 , 255] dans le domaine N
                 frequencyData = new Uint8Array(analyser.frequencyBinCount);
 
                 var source = context.createMediaElementSource(audio);
@@ -454,7 +450,7 @@
 
                 function renderFrame() {
                     requestAnimationFrame(renderFrame);
-                    // update data in frequencyData
+                    // met à jour les données dans frequenCyData
                     analyser.getByteFrequencyData(frequencyData);
                     initBuffers();
                 }
