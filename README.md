@@ -1,5 +1,5 @@
 # Musalizer
-3D Music Visualizator in WebGL
+3D Music Viewer in WebGL
 
 ## How to use it
 
