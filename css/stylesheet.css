@@ -16,3 +16,8 @@ body {
 #audio_file{
 	margin: auto;
 }
+
+#player{
+    margin: auto;
+    width: 100%;
+}
